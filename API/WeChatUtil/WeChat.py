@@ -1,8 +1,9 @@
+# -*- coding:utf-8 -*-
+
 """
 微信企业号消息接口封装模块
 封装了多媒体消息接口以及普通文本消息接口
 """
-
 import os
 import sys
 import time
@@ -237,21 +238,10 @@ class WeChatServer(WeChatBase):
     消息接收类(server)
     """
 
-    # def __new__(cls, *args, **kwargs):
-    #     """
-    #     重载__new__函数, 实现单例模式
-    #     @param args:
-    #     @param kwargs:
-    #     @return:
-    #     """
-    #     if not hasattr(cls, '_instance'):
-    #         orig = super(WeChatServer, cls)
-    #         cls._instance = orig.__new__(cls, *args)
-    #     return cls._instance
-
-    def __init__(self, appname, ini_name=None):
+    def __init__(self, flaskapp, appname, ini_name=None):
         """
         构造函数
+        @param flaskapp: 已经实例化的flask应用
         @param appname: APP名称, 与配置文件中section对应
         @return: 构造的对象
         """
@@ -268,11 +258,11 @@ class WeChatServer(WeChatBase):
         aes_key = self.config.get(appname, 'encoding_aes_key')
         corp_id = self.config.get(appname, 'corpid')
         self.wxcpt = utils.WXBizMsgCrypt(token, aes_key, corp_id)
-        ## 初始化Flask对象
-        #self.app = flask.Flask(__name__)
-        ## 添加路由规则
-        #self.app.add_url_rule('/' + self.config.get('system', 'route_name'),
-        #                      None, self.callback, methods=['GET', 'POST'])
+        # flaskapp为api blueprint
+        self.app = flaskapp
+        # 为微信添加路由规则
+        self.app.add_url_rule('/' + self.config.get('system', 'route_name'),
+                              None, self.callback, methods=['GET', 'POST'])
 
     def register_callback(self, msg_type, func):
         """
@@ -358,11 +348,11 @@ class WeChatServer(WeChatBase):
         # if decryption failed or all other reasons, return 400 bad request code
         flask.abort(400)
 
-    def run(self, *args, **kwargs):
-        """
-        启动server循环
-        @param args: 参数列表
-        @param kwargs: 参数字典
-        @return: None
-        """
-        self.app.run(*args, **kwargs)
+    #def run(self, *args, **kwargs):
+    #    """
+    #    启动server循环
+    #    @param args: 参数列表
+    #    @param kwargs: 参数字典
+    #    @return: None
+    #    """
+    #    self.app.run(*args, **kwargs)
