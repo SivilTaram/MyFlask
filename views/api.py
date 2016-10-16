@@ -8,5 +8,5 @@ class TestClass(object):
         param_dict['Content'] = 'hello,world'
         return param_dict
 
-server = WeChatServer(api,'demo')
+server = WeChatServer('demo','config.ini',api)
 server.register_callback('text', TestClass().reply_func)

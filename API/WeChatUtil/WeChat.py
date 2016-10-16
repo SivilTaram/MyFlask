@@ -238,7 +238,7 @@ class WeChatServer(WeChatBase):
     消息接收类(server)
     """
 
-    def __init__(self, flaskapp, appname, ini_name=None):
+    def __init__(self, appname, ini_name, flaskapp):
         """
         构造函数
         @param flaskapp: 已经实例化的flask应用
