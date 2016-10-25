@@ -5,8 +5,12 @@ api = Blueprint('api',__name__)
 
 class TestClass(object):
     def reply_func(self,param_dict):
-        param_dict['Content'] = 'hello,world'
+	print 'Receive Message %s' % (param_dict['Content'])
+	if param_dict['Content'] == '123':
+		param_dict['Content'] = '2333'
+	else:
+        	param_dict['Content'] = 'hello,world'
         return param_dict
 
-server = WeChatServer('demo','config.ini',api)
+server = WeChatServer('demo','/home/www/config.ini',api)
 server.register_callback('text', TestClass().reply_func)
