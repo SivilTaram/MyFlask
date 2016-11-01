@@ -96,6 +96,7 @@ def get_config(ini_name="config.ini"):
     config = configparser.ConfigParser()
     dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
     file_name = os.path.join(dirname, ini_name)
+    print("file_name",file_name)
     if not os.path.exists(file_name):
         dirname = os.path.dirname(os.path.abspath(__file__))
         dirname, unused = os.path.split(dirname)
