@@ -16,14 +16,13 @@ import struct
 import logging
 import collections
 
+import configparser
 import dicttoxml
 import xmltodict
-import ConfigParser
 import Crypto.Cipher.AES as AES
 import xml.etree.cElementTree as ElementTree
 
 import MyFlask.API.WeChatUtil.Ierror as ierror
-
 
 def ordered_to_dict(layer):
     """
@@ -61,7 +60,7 @@ def wrap_cdata(dict_data):
                 pass
         if isinstance(val, dict):
             dict_data[key] = wrap_cdata(val)
-        elif isinstance(val, str) or isinstance(val, unicode):
+        elif isinstance(val, str):
             dict_data[key] = '<![CDATA[%s]]>' % val
     return dict_data
 
@@ -94,7 +93,7 @@ def get_config(ini_name="config.ini"):
     @param ini_name: 配置文件默认名称
     @return: ConfigParser对象
     """
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
     file_name = os.path.join(dirname, ini_name)
     if not os.path.exists(file_name):
@@ -122,10 +121,20 @@ def throw_exception(message, exception_class=None):
         exception_class = FormatException
     raise exception_class(message)
 
+"""
+Python3中加密算法需要unicode先转码,才能Hash
+"""
+def to_utf8_bytes(str):
+    return str.encode("utf8")
+
+def utf8_bytes_to_str(bytes):
+    return bytes.decode("utf8")
+
+
 
 class SHA1(object):
     """计算公众平台的消息签名接口"""
-    logger = logging.getLogger('easy_wechat')
+    logger = logging.Logger("wechat")
 
     def getSHA1(self, token, timestamp, nonce, encrypt):
         """
@@ -140,7 +149,7 @@ class SHA1(object):
             sortlist = [token, timestamp, nonce, encrypt]
             sortlist.sort()
             sha = hashlib.sha1()
-            sha.update("".join(sortlist))
+            sha.update(to_utf8_bytes("".join(sortlist)))
             return ierror.WXBizMsgCrypt_OK, sha.hexdigest()
         except Exception as e:
             self.logger.error('SHA1 failed with exception: %s' % e.message)
@@ -209,7 +218,7 @@ class PKCS7Encoder(object):
         if amount_to_pad == 0:
             amount_to_pad = self.block_size
         # 获得补位所用的字符
-        pad = chr(amount_to_pad)
+        pad = bytearray([amount_to_pad])
         return text + pad * amount_to_pad
 
     def decode(self, decrypted):
@@ -246,7 +255,8 @@ class Prpcrypt(object):
         @return: 加密得到的字符串
         """
         # 16位随机字符串添加到明文开头
-        text = self.get_random_str() + struct.pack("I", socket.htonl(len(text))) + text + corpid
+        text = to_utf8_bytes(text)
+        text = to_utf8_bytes(self.get_random_str()) + struct.pack("I", socket.htonl(len(text))) + text + to_utf8_bytes(corpid)
         # 使用自定义的填充方式对明文进行补位填充
         pkcs7 = PKCS7Encoder()
         text = pkcs7.encode(text)
@@ -255,7 +265,7 @@ class Prpcrypt(object):
         try:
             ciphertext = cryptor.encrypt(text)
             # 使用BASE64对加密后的字符串进行编码
-            return ierror.WXBizMsgCrypt_OK, base64.b64encode(ciphertext)
+            return ierror.WXBizMsgCrypt_OK, utf8_bytes_to_str(base64.b64encode(ciphertext))
         except Exception as e:
             self.logger.error('encrypt failed with exception: %s' % e.message)
             return ierror.WXBizMsgCrypt_EncryptAES_Error, None
@@ -274,7 +284,7 @@ class Prpcrypt(object):
             self.logger.error('base64 decrypt failed with exception: %s' % e.message)
             return ierror.WXBizMsgCrypt_DecryptAES_Error, None
         try:
-            pad = ord(plain_text[-1])
+            pad = plain_text[-1]
             # 去掉补位字符串
             # pkcs7 = PKCS7Encoder()
             # plain_text = pkcs7.encode(plain_text)
@@ -282,9 +292,9 @@ class Prpcrypt(object):
             content = plain_text[16:-pad]
             xml_len = socket.ntohl(struct.unpack("I", content[: 4])[0])
             xml_content = content[4: xml_len + 4]
-            from_corpid = content[xml_len + 4:]
+            from_corpid = utf8_bytes_to_str(content[xml_len + 4:])
         except Exception as e:
-            self.logger.error('data unpack failed with exception: %s' % e.message)
+            self.logger.error('data unpack failed with exception: %s' % str(e))
             return ierror.WXBizMsgCrypt_IllegalBuffer, None
         if from_corpid != corpid:
             return ierror.WXBizMsgCrypt_ValidateCorpid_Error, None
@@ -294,7 +304,7 @@ class Prpcrypt(object):
         """ 随机生成16位字符串
         @return: 16位字符串
         """
-        rule = string.letters + string.digits
+        rule = string.ascii_letters + string.digits
         str_data = random.sample(rule, 16)
         return "".join(str_data)
 
@@ -318,7 +328,7 @@ class WXBizMsgCrypt(object):
             self.key = base64.b64decode(sEncodingAESKey + "=")
             assert len(self.key) == 32
         except Exception as e:
-            self.logger.error('base64 decode failed with exception: %s' % e.message)
+            self.logger.error('base64 decode failed with exception: %s' % str(e))
             throw_exception("[error]: EncodingAESKey invalid !", FormatException)
         self.m_sToken = sToken
         self.m_sCorpid = sCorpId

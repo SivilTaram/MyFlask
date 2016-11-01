@@ -337,11 +337,12 @@ class WeChatServer(WeChatBase):
                     res_dict['ToUserName'] = param_dict['FromUserName']
                     res_dict['FromUserName'] = param_dict['ToUserName']
                     xml_data = utils.dict_to_xml(res_dict)
+                    # encrypted_data 是加密后的回复消息
                     ret_val, encrypted_data = \
                         self.wxcpt.EncryptMsg(xml_data, nonce, timestamp)
                     if ret_val == 0:
-                        self.logger.info('replied a message to %s' %
-                                         res_dict.get('ToUserName', 'null'))
+                        self.logger.info('replied \' %s \' to %s' %
+                                         (res_dict['Content'],res_dict.get('ToUserName', 'null')))
                         return flask.Response(encrypted_data, mimetype='text/xml')
         # 如果没有正确走完这个流程, 就记录日志返回错误
         self.logger.error('request failed with request data: %r' % req_data)

@@ -18,7 +18,7 @@ class MoocMember:
         login_info = {'email':_email,'password':_pass}
         csrf_token = res.cookies['csrftoken']
         cookies = 'csrftoken=%s;sessionid=%s' %(csrf_token,res.cookies['sessionid'])
-        
+
         # login_header
         login_header = {'Referer':'http://mooc.buaa.edu.cn/login',
                         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:49.0) Gecko/20100101 Firefox/49.0',
@@ -28,12 +28,12 @@ class MoocMember:
                   
         # reponse for login
         login_res = self.client.post('http://mooc.buaa.edu.cn/login_ajax',
-                                data=login_info,
-                                headers=login_header)
+                                     data = login_info,
+                                     headers = login_header)
         if login_res.status_code == requests.codes.ok:
             print login_res.text
     
-    def CreateDiscuss(self,title,body):
+    def creatediscuss(self, title, body):
         
         forum_body = body
         forum_title = title
@@ -47,15 +47,15 @@ class MoocMember:
                         'X-CSRFToken':forum_csrf_token,
                         'X-Requested-With':'XMLHttpRequest'}
         
-        forum_info = {'anonymous':'false',
-                      'anonymous_to_peers':'false',
-                      'auto_subscribe':'true',
-                      'body':forum_body,
-                      'group_id':'',
-                      'thread_type':'discussion',
-                      'title':forum_title}
+        forum_info = {'anonymous': 'false',
+                      'anonymous_to_peers': 'false',
+                      'auto_subscribe': 'true',
+                      'body': forum_body,
+                      'group_id': '',
+                      'thread_type': 'discussion',
+                      'title': forum_title}
         
-        #create post response
+        # create post response
         create_res = self.client.post('http://mooc.buaa.edu.cn/courses/BUAA/M_E06B2150/2015_T1/discussion/i4x-BUAA-M_E06B2150-course-2015_T9/threads/create?ajax=1',
                                  data = forum_info,
                                  headers = forum_header)
